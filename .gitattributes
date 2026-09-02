@@ -1,0 +1,8 @@
+# Store text files with LF in the repository regardless of the OS committing
+# them, so Windows checkouts don't show every file as modified and the Linux CI
+# build sees the same bytes.
+* text=auto eol=lf
+
+*.png binary
+*.jpg binary
+*.ico binary

@@ -1,0 +1,19 @@
+node_modules/
+dist/
+dist-ssr/
+
+# Local Firebase credentials. Never commit these; use .env.example as the template
+# and GitHub Actions secrets for the deployed build.
+.env
+.env.local
+.env.*.local
+
+*.log
+npm-debug.log*
+.DS_Store
+.vscode/*
+!.vscode/extensions.json
+.idea/
+
+# Machine-local Claude Code permissions, not shared config.
+.claude/settings.local.json

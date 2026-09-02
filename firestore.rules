@@ -1,0 +1,61 @@
+rules_version = '2';
+
+// Publish with: Firebase console -> Firestore Database -> Rules -> Publish.
+//
+// The model is "public to read, allow-list to write". The VITE_FIREBASE_* values
+// in the shipped bundle are public identifiers by design, so these rules — not
+// those keys — are what actually protects the tree.
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    match /trees/{treeId} {
+
+      function tree() {
+        return get(/databases/$(database)/documents/trees/$(treeId)).data;
+      }
+
+      function isEditor() {
+        return request.auth != null
+            && request.auth.token.email_verified == true
+            && request.auth.token.email in tree().editors;
+      }
+
+      // Editors must not be able to widen access; ownership and the editors
+      // list are changed only from the Firebase console.
+      function keepsAccessList() {
+        return request.resource.data.editors == resource.data.editors
+            && request.resource.data.ownerEmail == resource.data.ownerEmail;
+      }
+
+      allow read: if true;
+      // Renaming the tree and re-centring it ("make this me") are edits.
+      allow update: if isEditor() && keepsAccessList();
+      // Create the tree document by hand in the console, once. Leaving create
+      // closed means nobody can squat your tree id before you do.
+      allow create, delete: if false;
+
+      match /people/{personId} {
+        allow read: if true;
+        allow write: if isEditor();
+      }
+
+      match /links/{linkId} {
+        allow read: if true;
+        allow write: if isEditor();
+      }
+
+      match /photos/{personId} {
+        allow read: if true;
+        // The client writes ~30 KB base64 thumbnails. The ceiling is well under
+        // Firestore's 1 MiB document limit but far above a real thumbnail, so a
+        // bug or a hand-crafted request cannot fill the free quota with one doc.
+        allow create, update: if isEditor()
+            && request.resource.data.dataUrl is string
+            && request.resource.data.dataUrl.size() < 400000;
+        // Deletes carry no request.resource, so they need their own rule.
+        allow delete: if isEditor();
+      }
+    }
+  }
+}
