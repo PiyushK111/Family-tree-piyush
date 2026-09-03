@@ -137,6 +137,90 @@ export async function connectExisting(
   await link(store, snapshot, { type: 'parent', from, to, kind })
 }
 
+export interface ImportSummary {
+  people: number
+  links: number
+  photos: number
+}
+
+/**
+ * Loads an exported tree into the current store.
+ *
+ * Person ids are remapped rather than reused: Firestore assigns its own
+ * document ids, so a tree exported from the browser-only store cannot keep its
+ * keys. Links are rewritten through that mapping, which is why people must all
+ * be created first.
+ */
+export async function importTree(
+  store: Store,
+  json: string,
+  onProgress?: (done: number, total: number) => void,
+): Promise<ImportSummary> {
+  let parsed: {
+    meta?: { rootPersonId?: string; name?: string }
+    people?: Person[]
+    links?: Array<Record<string, string>>
+    photos?: Record<string, string>
+  }
+  try {
+    parsed = JSON.parse(json)
+  } catch {
+    throw new MutationError('That file is not valid JSON.')
+  }
+
+  const people = parsed.people
+  const links = parsed.links ?? []
+  if (!Array.isArray(people) || people.length === 0) {
+    throw new MutationError('That file has no people in it, so it is not a family tree export.')
+  }
+
+  const photos = parsed.photos ?? {}
+  const idMap = new Map<string, string>()
+  const total = people.length + links.length
+  let done = 0
+  let photoCount = 0
+
+  for (const person of people) {
+    const { id, ...fields } = person
+    const photo = photos[id]
+    if (photo) photoCount++
+    const newId = await store.addPerson({ ...fields, hasPhoto: Boolean(photo) }, photo)
+    idMap.set(id, newId)
+    onProgress?.(++done, total)
+  }
+
+  for (const link of links) {
+    const from = idMap.get(link.from)
+    const to = idMap.get(link.to)
+    // Silently skip links whose endpoints did not come through.
+    if (from && to) {
+      if (link.type === 'spouse') {
+        await store.addLink({
+          type: 'spouse',
+          from,
+          to,
+          status: (link.status as SpouseStatus) ?? 'married',
+          since: link.since,
+        })
+      } else {
+        await store.addLink({
+          type: 'parent',
+          from,
+          to,
+          kind: (link.kind as ParentKind) ?? 'biological',
+        })
+      }
+    }
+    onProgress?.(++done, total)
+  }
+
+  const root = parsed.meta?.rootPersonId ? idMap.get(parsed.meta.rootPersonId) : undefined
+  if (root) await store.setRoot(root)
+  if (parsed.meta?.name) await store.renameTree(parsed.meta.name).catch(() => undefined)
+
+  return { people: people.length, links: links.length, photos: photoCount }
+}
+
 /**
  * Deletes a person along with their links. Refuses to delete the person the
  * tree is centred on, since every relation label is computed from them.

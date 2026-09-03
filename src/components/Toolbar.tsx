@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react'
 import { useTree } from '../data/TreeProvider'
 import { importLocalJson } from '../data/localStore'
+import { importTree } from '../data/mutations'
 import type { LabelMode } from '../layout/buildFlowGraph'
 
 interface Props {
@@ -45,6 +46,8 @@ export function Toolbar({
   } = useTree()
 
   const [query, setQuery] = useState('')
+  // Doubles as the button label while a Firestore import is streaming.
+  const [importing, setImporting] = useState<string | null>(null)
 
   const matches = useMemo(() => {
     const q = query.trim().toLowerCase()
@@ -142,21 +145,45 @@ export function Toolbar({
           Export
         </button>
 
-        {store.mode === 'local' && (
-          <label className="btn btn--ghost">
-            Import
+        {canEdit && (
+          <label className={`btn btn--ghost${importing ? ' btn--busy' : ''}`}>
+            {importing ?? 'Import'}
             <input
               type="file"
               accept="application/json"
               hidden
+              disabled={importing !== null}
               onChange={async (e) => {
                 const file = e.target.files?.[0]
+                e.target.value = ''
                 if (!file) return
+                if (
+                  snapshot.people.length > 0 &&
+                  !window.confirm(
+                    `This tree already has ${snapshot.people.length} people. Importing adds to them rather than replacing them, which will create duplicates. Continue?`,
+                  )
+                ) {
+                  return
+                }
                 try {
-                  importLocalJson(await file.text())
-                  // The local store reads from storage once at startup.
-                  window.location.reload()
+                  const text = await file.text()
+                  if (store.mode === 'local') {
+                    // Fast path: swap the whole payload in one write. The local
+                    // store reads storage once at startup, hence the reload.
+                    importLocalJson(text)
+                    window.location.reload()
+                    return
+                  }
+                  setImporting('Importing…')
+                  const summary = await importTree(store, text, (done, total) =>
+                    setImporting(`Importing ${done}/${total}…`),
+                  )
+                  setImporting(null)
+                  window.alert(
+                    `Imported ${summary.people} people, ${summary.links} links and ${summary.photos} photos.`,
+                  )
                 } catch (err) {
+                  setImporting(null)
                   window.alert((err as Error).message)
                 }
               }}
