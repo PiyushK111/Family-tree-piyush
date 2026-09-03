@@ -158,6 +158,41 @@ reads as a bug in the app rather than a build problem. It now fails the deploy i
 `vite.config.ts` sets `base: '/Family-tree-piyush/'`. It must match the repository name exactly,
 **including capitals** — a mismatch serves a blank page with 404s for every asset.
 
+## Installing it on a phone
+
+The site is a **PWA**, so it installs to a home screen and runs like a native app — its own icon,
+full screen, no browser address bar, and it opens offline.
+
+- **Android (Chrome/Edge):** open the site and tap **Install app** in the toolbar, or use the
+  browser menu's *Install app* / *Add to Home screen*.
+- **iPhone/iPad (Safari):** Share button, then **Add to Home Screen**. iOS has no install API, so
+  the toolbar button explains this route rather than pretending to do it.
+- **Desktop (Chrome/Edge):** the same **Install app** button gives it a standalone window.
+
+Two things make it usable by finger rather than mouse: the `+` add-relative buttons on a card are
+permanently visible under `(hover: none)` — on a touch screen they could otherwise never be
+revealed, since a tap opens the person dialog — and Firestore keeps an IndexedDB cache, so a cold
+launch with no signal still shows the last-known tree and syncs when the network returns.
+
+Updates arrive on their own: the service worker re-fetches in the background after a push, so the
+installed app is never pinned to an old build.
+
+### If you want a real app-store app
+
+A PWA cannot be listed in the Play Store or App Store. Wrapping this same build in
+[Capacitor](https://capacitorjs.com) produces a native shell around it and needs no rewrite:
+
+```bash
+npm i -D @capacitor/cli && npm i @capacitor/core @capacitor/android
+npx cap init "Family Tree" com.piyush.familytree --web-dir=dist
+npm run build && npx cap add android && npx cap open android
+```
+
+The costs are outside the code: Android Studio (and Xcode plus a Mac for iOS), a one-off $25 Play
+Store fee or $99/year Apple developer account, store review, and Google sign-in then needs the
+native Firebase SDK rather than the web popup flow — the popup does not work inside a WebView. For
+a family tree shared by link, the PWA route avoids all of that.
+
 ## How it is built
 
 | Concern | Choice |

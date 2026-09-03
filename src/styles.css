@@ -794,7 +794,8 @@ textarea {
 @media (max-width: 640px) {
   .toolbar {
     gap: 8px;
-    padding: 8px 10px;
+    --toolbar-pad-x: 10px;
+    --toolbar-pad-y: 8px;
   }
 
   .toolbar__search {
@@ -805,6 +806,17 @@ textarea {
 
   .toolbar__actions {
     order: 2;
+    gap: 6px;
+  }
+
+  /* The select is self-explanatory once its options read "Branches"/"Cards",
+     and dropping the label buys enough width for one fewer toolbar row. */
+  .toolbar__select span {
+    display: none;
+  }
+
+  .toolbar .btn {
+    padding: 7px 10px;
   }
 
   .modal__panel {
@@ -814,4 +826,47 @@ textarea {
   .react-flow__minimap {
     display: none;
   }
+}
+
+/* ---------- Installed / touch app ------------------------------------ */
+
+/* Coarse pointers get no :hover, so the add-relative buttons that appear on
+   hover would be unreachable: tapping the card opens the person dialog instead.
+   Show them permanently and size them for a fingertip. */
+@media (hover: none) {
+  .person__adders {
+    opacity: 1;
+    pointer-events: auto;
+    bottom: -18px;
+    gap: 5px;
+  }
+
+  .person__adders button {
+    width: 30px;
+    height: 30px;
+    font-size: 15px;
+  }
+
+  /* Room for the taller button row, so it never overlaps the row below. */
+  .react-flow__node-person {
+    padding-bottom: 6px;
+  }
+}
+
+/* Launched from the home screen there is no browser chrome to pull down, so a
+   stray downward drag would otherwise reload the app mid-edit. */
+@media (display-mode: standalone) {
+  html,
+  body {
+    overscroll-behavior: none;
+  }
+}
+
+/* Clears the notch and the status bar in a standalone launch. Declared last so
+   it wins over the base rule, with the small-screen block supplying the vars. */
+.toolbar {
+  padding: max(var(--toolbar-pad-y, 10px), env(safe-area-inset-top))
+    max(var(--toolbar-pad-x, 14px), env(safe-area-inset-right))
+    var(--toolbar-pad-y, 10px)
+    max(var(--toolbar-pad-x, 14px), env(safe-area-inset-left));
 }

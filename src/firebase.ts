@@ -1,6 +1,11 @@
 import { initializeApp, type FirebaseApp } from 'firebase/app'
 import { getAuth, GoogleAuthProvider, type Auth } from 'firebase/auth'
-import { getFirestore, type Firestore } from 'firebase/firestore'
+import {
+  initializeFirestore,
+  persistentLocalCache,
+  persistentMultipleTabManager,
+  type Firestore,
+} from 'firebase/firestore'
 
 const env = import.meta.env
 
@@ -42,7 +47,13 @@ export function getFirebase(): FirebaseHandles | null {
       messagingSenderId: config.messagingSenderId,
       appId: config.appId,
     })
-    handles = { app, auth: getAuth(app), db: getFirestore(app) }
+    // IndexedDB cache, so the installed app opens to the last-known tree with
+    // no network and syncs when it comes back. Falls back to memory silently
+    // in private windows where IndexedDB is unavailable.
+    const db = initializeFirestore(app, {
+      localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() }),
+    })
+    handles = { app, auth: getAuth(app), db }
   }
   return handles
 }

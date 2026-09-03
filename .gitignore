@@ -1,9 +1,11 @@
 node_modules/
 dist/
 dist-ssr/
+# Service worker output from `vite dev`.
+dev-dist/
 
-# Local Firebase credentials. Never commit these; use .env.example as the template
-# and GitHub Actions secrets for the deployed build.
+# Local Firebase credentials. The deployed build reads .env.production, which is
+# committed on purpose; these local overrides are not.
 .env
 .env.local
 .env.*.local

@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react'
 import { useTree } from '../data/TreeProvider'
 import { importLocalJson } from '../data/localStore'
 import { importTree } from '../data/mutations'
+import { InstallButton } from './InstallButton'
 import type { LabelMode } from '../layout/buildFlowGraph'
 
 interface Props {
@@ -116,6 +117,8 @@ export function Toolbar({
         <button type="button" className="btn btn--soft" onClick={onRecentre}>
           Centre on {viewFrom ? egoName : 'me'}
         </button>
+
+        <InstallButton />
 
         {canEdit && (
           <button type="button" className="btn" onClick={onAddPerson}>
