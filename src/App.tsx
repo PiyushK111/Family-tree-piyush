@@ -52,7 +52,17 @@ export function App() {
         )}
       </main>
 
-      {dialog && <PersonDialog target={dialog} onClose={() => setDialog(null)} />}
+      {dialog && (
+        <PersonDialog
+          // Keyed so retargeting remounts: the form is seeded on mount, and
+          // without this an "add spouse" jump would inherit the edited
+          // person's own name and dates.
+          key={JSON.stringify(dialog)}
+          target={dialog}
+          onClose={() => setDialog(null)}
+          onRetarget={setDialog}
+        />
+      )}
     </div>
   )
 }

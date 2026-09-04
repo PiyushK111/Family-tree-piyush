@@ -657,6 +657,14 @@ textarea {
   gap: 12px;
 }
 
+/* Grid items default to min-width: auto, so a date input's wide intrinsic size
+   pushed the second column past the panel edge on a phone. */
+.field-row > .field,
+.field-row input,
+.field-row select {
+  min-width: 0;
+}
+
 .field--check {
   display: flex;
   align-items: center;
@@ -830,27 +838,36 @@ textarea {
 
 /* ---------- Installed / touch app ------------------------------------ */
 
-/* Coarse pointers get no :hover, so the add-relative buttons that appear on
-   hover would be unreachable: tapping the card opens the person dialog instead.
-   Show them permanently and size them for a fingertip. */
+/* Coarse pointers get no :hover, so the canvas `+` buttons could only ever be
+   revealed by a tap -- which opens the person dialog instead. Worse, they live
+   inside React Flow's zoom transform, so at the zoom where a whole tree fits on
+   a phone they render near 15px and 17px apart: too small to hit, and spouse
+   and sibling are one fingertip's width from each other. Hide them and let the
+   dialog's labelled "Add a new relative" row do the job at any zoom. */
 @media (hover: none) {
   .person__adders {
-    opacity: 1;
-    pointer-events: auto;
-    bottom: -18px;
-    gap: 5px;
+    display: none;
   }
+}
 
-  .person__adders button {
-    width: 30px;
-    height: 30px;
-    font-size: 15px;
-  }
+.add-relative h3 {
+  margin: 0 0 8px;
+  font-size: 13px;
+  color: var(--muted);
+  font-weight: 600;
+}
 
-  /* Room for the taller button row, so it never overlaps the row below. */
-  .react-flow__node-person {
-    padding-bottom: 6px;
-  }
+.add-relative__row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.add-relative__row .btn {
+  flex: 1 1 auto;
+  /* Comfortably past the ~44px fingertip minimum on a phone. */
+  min-height: 44px;
+  min-width: 92px;
 }
 
 /* Launched from the home screen there is no browser chrome to pull down, so a

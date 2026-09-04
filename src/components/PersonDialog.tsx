@@ -20,6 +20,12 @@ export type DialogTarget =
 interface Props {
   target: DialogTarget
   onClose: () => void
+  /**
+   * Switches this dialog to adding a relative of the person being edited. The
+   * only way to add a new relative on a touch screen, where the canvas's `+`
+   * buttons are hidden.
+   */
+  onRetarget?: (target: DialogTarget) => void
 }
 
 interface FormState {
@@ -66,6 +72,14 @@ function toForm(person: Person): FormState {
   }
 }
 
+/** Order matches the tree: above, beside, beside, below. */
+const ADD_DIRECTIONS: Array<{ direction: Direction; label: string }> = [
+  { direction: 'parent', label: '↑ Parent' },
+  { direction: 'spouse', label: '♡ Spouse' },
+  { direction: 'sibling', label: '⇄ Sibling' },
+  { direction: 'child', label: '↓ Child' },
+]
+
 const DIRECTION_TITLES: Record<Direction, string> = {
   parent: 'Add a parent',
   child: 'Add a child',
@@ -73,7 +87,7 @@ const DIRECTION_TITLES: Record<Direction, string> = {
   sibling: 'Add a sibling',
 }
 
-export function PersonDialog({ target, onClose }: Props) {
+export function PersonDialog({ target, onClose, onRetarget }: Props) {
   const { store, snapshot, graph, relations, rootId, setViewFrom, canEdit } = useTree()
 
   const existing =
@@ -101,6 +115,11 @@ export function PersonDialog({ target, onClose }: Props) {
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
   }, [onClose])
+
+  // Retargeting the dialog throws the form away, so warn if it has been touched.
+  const dirty =
+    photoDraft !== undefined ||
+    JSON.stringify(form) !== JSON.stringify(existing ? toForm(existing) : BLANK)
 
   const currentPhoto =
     photoDraft !== undefined
@@ -353,6 +372,44 @@ export function PersonDialog({ target, onClose }: Props) {
                 />
               </label>
             </div>
+          )}
+
+          {target.mode === 'edit' && existing && canEdit && onRetarget && (
+            <section className="add-relative">
+              <h3>Add a new relative</h3>
+              <div className="add-relative__row">
+                {ADD_DIRECTIONS.map(({ direction, label }) => {
+                  const needsParent =
+                    direction === 'sibling' && parents(graph, existing.id).length === 0
+                  return (
+                    <button
+                      key={direction}
+                      type="button"
+                      className="btn btn--soft"
+                      disabled={needsParent}
+                      title={
+                        needsParent
+                          ? 'Add a parent first — siblings are connected through a shared parent'
+                          : undefined
+                      }
+                      onClick={() => {
+                        if (
+                          dirty &&
+                          !window.confirm(
+                            `Discard your unsaved changes to ${existing.name || 'this person'}?`,
+                          )
+                        ) {
+                          return
+                        }
+                        onRetarget({ mode: 'add', anchorId: existing.id, direction })
+                      }}
+                    >
+                      {label}
+                    </button>
+                  )
+                })}
+              </div>
+            </section>
           )}
 
           {target.mode === 'edit' && existing && (

@@ -169,10 +169,15 @@ full screen, no browser address bar, and it opens offline.
   the toolbar button explains this route rather than pretending to do it.
 - **Desktop (Chrome/Edge):** the same **Install app** button gives it a standalone window.
 
-Two things make it usable by finger rather than mouse: the `+` add-relative buttons on a card are
-permanently visible under `(hover: none)` — on a touch screen they could otherwise never be
-revealed, since a tap opens the person dialog — and Firestore keeps an IndexedDB cache, so a cold
-launch with no signal still shows the last-known tree and syncs when the network returns.
+Adding relatives works differently by finger. The `+` buttons on a card live inside React Flow's
+zoom transform, so at the zoom where a whole tree fits on a phone they render around 15px and 17px
+apart — too small to hit, with spouse and sibling within one fingertip of each other. On a touch
+screen they are hidden; instead **tap a card and use the labelled "Add a new relative" row** —
+Parent, Spouse, Sibling, Child at a full 44px, correct at any zoom level. The `+` shortcuts remain
+on pointer devices, where hovering also reveals what each glyph means.
+
+Firestore also keeps an IndexedDB cache, so a cold launch with no signal still shows the
+last-known tree and syncs when the network returns.
 
 Updates arrive on their own: the service worker re-fetches in the background after a push, so the
 installed app is never pinned to an old build.
